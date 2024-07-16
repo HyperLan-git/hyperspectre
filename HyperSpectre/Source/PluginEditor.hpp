@@ -30,6 +30,7 @@ class TestAudioProcessorEditor : public juce::AudioProcessorEditor {
 
     float fbuffer[TestAudioProcessor::points];
     float tbuffer[TestAudioProcessor::points];
+    float abuffer[TestAudioProcessor::points];
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TestAudioProcessorEditor)
 };

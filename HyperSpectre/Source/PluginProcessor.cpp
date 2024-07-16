@@ -135,31 +135,22 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     constexpr auto M = juce::MathConstants<float>();
     long double dt = 1;
     dt /= sampleRate;
-    juce::Random rand;
+    // juce::Random rand;
     for (int channel = 0; channel < inputs; ++channel) {
         float* channelData = buffer.getWritePointer(channel);
         long double t = std::fmod(
             *(this->getPlayHead()->getPosition()->getTimeInSeconds()), 1);
         for (int i = 0; i < samples; ++i) {
             // channelData[i] = (rand.nextFloat() * 2 - 1);
-            constexpr float f = 10000;
+            constexpr float f = 2000;
             // channelData[i] = std::fmod(t * f, 1) * 2 - 1;
-            // channelData[i] = sin(t * M.twoPi * (f + sin(t * 6) * 500));
-            channelData[i] = sin(t * M.twoPi * f);
-            channelData[i] += sin(t * M.twoPi * 30);
-            channelData[i] += sin(t * M.twoPi * 300);
-            channelData[i] += sin(t * M.twoPi * 3000);
-            channelData[i] /= 4;
-            /*channelData[i] += sin(t * M.twoPi * f * 3) / 9;
-            channelData[i] += sin(t * M.twoPi * f * 5) / 25;
-            channelData[i] += sin(t * M.twoPi * f * 7) / 49;
-            channelData[i] += sin(t * M.twoPi * f * 9) / 81;*/
+            // channelData[i] = std::fmod(t * f, 1) > .5 ? 1 : -1;
+            channelData[i] = sin(t * M.twoPi * (f * sin(t * M.pi)));
             t += dt;
         }
     }
 
     const float* channelData = buffer.getReadPointer(0);
-    channelData = buffer.getWritePointer(0);
     if (inputs > 0) {
         int len = samples;
         if (len >= fftSize)
@@ -203,13 +194,14 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
      * w' = w + (-real(Xdh) * img(X) + img(Xdh) * real(X)) / abs(X)^2
      */
     float t = *(this->getPlayHead()->getPosition()->getTimeInSeconds());
-    for (int i = 0; i < fftSize / 2; i++) {
+    for (int i = 2; i < fftSize / 2; i++) {
         int idx = i * 2;
         float mag =
             fftData[idx] * fftData[idx] + fftData[idx + 1] * fftData[idx + 1];
-        if (mag < 100000) continue;
+        float f = i * sampleRate / fftSize * 2;
 
-        float f = i * sampleRate / fftSize;
+        if (std::log(mag * f) < 13) continue;
+
         if (f >= 20000) continue;
 
         fftTimes[pointIdx] = t - (fftTh[idx] * fftData[idx] +
@@ -218,29 +210,10 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         fftFrequencies[pointIdx] = f - (fftDht[idx] * fftData[idx + 1] -
                                         fftDht[idx + 1] * fftData[idx]) /
                                            mag;
+        fftAmps[pointIdx] = std::log(mag * f) / 23;
         (++pointIdx) %= points;
-        // std::cout << (f - fftFrequencies[i]) << '\n';
     }
     this->lastTimeProcessed = t;
-
-    constexpr float mindB = -70.0f, maxdB = 0;
-    for (int i = 0; i < scopeSize; ++i) {
-        float skewedProportionX =
-            1.0f - std::exp(std::log(1.0f - i / (float)scopeSize) * 0.2f);
-        int fftDataIndex =
-            juce::jlimit<int>(0, fftSize, skewedProportionX * fftSize);
-
-        float val =
-            std::sqrt(fftData[fftDataIndex] * fftData[fftDataIndex] +
-                      fftData[fftDataIndex + 1] * fftData[fftDataIndex + 1]);
-        float level = juce::jmap(
-            juce::jlimit(mindB, maxdB,
-                         juce::Decibels::gainToDecibels(val) -
-                             juce::Decibels::gainToDecibels<float>(fftSize)),
-            mindB, maxdB, 0.0f, 1.0f);
-
-        scopeData[i] = level;
-    }
 
     fftLock.unlock();
 }

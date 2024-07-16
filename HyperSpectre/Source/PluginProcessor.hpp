@@ -59,13 +59,13 @@ class TestAudioProcessor : public juce::AudioProcessor {
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
-    inline const float* const getData() const { return this->scopeData; }
     inline const float* const getSampleData() const { return this->fftTemp; }
 
     inline const float* const getFreqData() const {
         return this->fftFrequencies;
     }
     inline const float* const getTimeData() const { return this->fftTimes; }
+    inline const float* const getAmpData() const { return this->fftAmps; }
 
     inline const float getLastTimeProcessed() {
         return this->lastTimeProcessed;
@@ -75,7 +75,7 @@ class TestAudioProcessor : public juce::AudioProcessor {
     inline bool trylockFFT() { return this->fftLock.try_lock(); }
     inline void unlockFFT() { this->fftLock.unlock(); }
 
-    static constexpr size_t points = 500;
+    static constexpr size_t points = 3000;
 
    private:
     juce::dsp::WindowingFunction<float> window;
@@ -86,7 +86,6 @@ class TestAudioProcessor : public juce::AudioProcessor {
 
     std::mutex fftLock;
 
-    float scopeData[scopeSize];
     float fftTemp[fftSize];
 
     float fftData[fftSize];
@@ -97,6 +96,7 @@ class TestAudioProcessor : public juce::AudioProcessor {
 
     float fftTimes[points];
     float fftFrequencies[points];
+    float fftAmps[points];
 
     size_t pointIdx = 0;
 
