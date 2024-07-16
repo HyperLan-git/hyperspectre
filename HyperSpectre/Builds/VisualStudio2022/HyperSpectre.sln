@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio Version 17
+
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HyperSpectre - Standalone Plugin", "HyperSpectre_StandalonePlugin.vcxproj", "{B23EC5A6-9CE4-327C-DAC1-04C69C8374BD}"
+	ProjectSection(ProjectDependencies) = postProject
+		{EABBFD6D-08DA-E525-6C7A-B9B914D49D58} = {EABBFD6D-08DA-E525-6C7A-B9B914D49D58}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HyperSpectre - VST3", "HyperSpectre_VST3.vcxproj", "{7EF64AEA-0BA2-85C2-B5A2-5C39C0F8BB29}"
+	ProjectSection(ProjectDependencies) = postProject
+		{EABBFD6D-08DA-E525-6C7A-B9B914D49D58} = {EABBFD6D-08DA-E525-6C7A-B9B914D49D58}
+		{01424610-1166-D8EA-3706-7BA5337BD897} = {01424610-1166-D8EA-3706-7BA5337BD897}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HyperSpectre - Shared Code", "HyperSpectre_SharedCode.vcxproj", "{EABBFD6D-08DA-E525-6C7A-B9B914D49D58}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HyperSpectre - VST3 Manifest Helper", "HyperSpectre_VST3ManifestHelper.vcxproj", "{01424610-1166-D8EA-3706-7BA5337BD897}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7EF64AEA-0BA2-85C2-B5A2-5C39C0F8BB29}.Debug|x64.ActiveCfg = Debug|x64
+		{7EF64AEA-0BA2-85C2-B5A2-5C39C0F8BB29}.Debug|x64.Build.0 = Debug|x64
+		{7EF64AEA-0BA2-85C2-B5A2-5C39C0F8BB29}.Release|x64.ActiveCfg = Release|x64
+		{7EF64AEA-0BA2-85C2-B5A2-5C39C0F8BB29}.Release|x64.Build.0 = Release|x64
+		{B23EC5A6-9CE4-327C-DAC1-04C69C8374BD}.Debug|x64.ActiveCfg = Debug|x64
+		{B23EC5A6-9CE4-327C-DAC1-04C69C8374BD}.Debug|x64.Build.0 = Debug|x64
+		{B23EC5A6-9CE4-327C-DAC1-04C69C8374BD}.Release|x64.ActiveCfg = Release|x64
+		{B23EC5A6-9CE4-327C-DAC1-04C69C8374BD}.Release|x64.Build.0 = Release|x64
+		{EABBFD6D-08DA-E525-6C7A-B9B914D49D58}.Debug|x64.ActiveCfg = Debug|x64
+		{EABBFD6D-08DA-E525-6C7A-B9B914D49D58}.Debug|x64.Build.0 = Debug|x64
+		{EABBFD6D-08DA-E525-6C7A-B9B914D49D58}.Release|x64.ActiveCfg = Release|x64
+		{EABBFD6D-08DA-E525-6C7A-B9B914D49D58}.Release|x64.Build.0 = Release|x64
+		{01424610-1166-D8EA-3706-7BA5337BD897}.Debug|x64.ActiveCfg = Debug|x64
+		{01424610-1166-D8EA-3706-7BA5337BD897}.Debug|x64.Build.0 = Debug|x64
+		{01424610-1166-D8EA-3706-7BA5337BD897}.Release|x64.ActiveCfg = Release|x64
+		{01424610-1166-D8EA-3706-7BA5337BD897}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
