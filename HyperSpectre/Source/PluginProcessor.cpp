@@ -87,14 +87,9 @@ void TestAudioProcessor::changeProgramName(int index,
 
 //==============================================================================
 void TestAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
 }
 
-void TestAudioProcessor::releaseResources() {
-    // When playback stops, you can use this as an opportunity to free up any
-    // spare memory, etc.
-}
+void TestAudioProcessor::releaseResources() {}
 
 #ifndef JucePlugin_PreferredChannelConfigurations
 bool TestAudioProcessor::isBusesLayoutSupported(
@@ -135,16 +130,13 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     constexpr auto M = juce::MathConstants<float>();
     long double dt = 1;
     dt /= sampleRate;
-    // juce::Random rand;
+    juce::Random rand;
     for (int channel = 0; channel < inputs; ++channel) {
         float* channelData = buffer.getWritePointer(channel);
         long double t = std::fmod(
-            *(this->getPlayHead()->getPosition()->getTimeInSeconds()), 1);
+            *(this->getPlayHead()->getPosition()->getTimeInSeconds()), 2);
         for (int i = 0; i < samples; ++i) {
-            // channelData[i] = (rand.nextFloat() * 2 - 1);
             constexpr float f = 2000;
-            // channelData[i] = std::fmod(t * f, 1) * 2 - 1;
-            // channelData[i] = std::fmod(t * f, 1) > .5 ? 1 : -1;
             channelData[i] = sin(t * M.twoPi * (f * sin(t * M.pi)));
             t += dt;
         }
@@ -171,7 +163,6 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         window.multiplyWithWindowingTable(fftData, fftSize);
         fft.performRealOnlyForwardTransform(fftData);
     }
-    fftLock.unlock();
 
     {
         std::memcpy(fftTh, fftTemp, sz);
@@ -183,8 +174,6 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         fft.performRealOnlyForwardTransform(fftTh);
         fft.performRealOnlyForwardTransform(fftDht);
     }
-
-    if (!fftLock.try_lock()) return;
 
     /*
      * t' = t - real(Xth * conj(X) / abs(X)^2)
@@ -200,18 +189,17 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             fftData[idx] * fftData[idx] + fftData[idx + 1] * fftData[idx + 1];
         float f = i * sampleRate / fftSize * 2;
 
-        if (std::log(mag * f) < 13) continue;
+        if (std::log(mag / fftSize) < -.5) continue;
 
         if (f >= 20000) continue;
 
-        fftTimes[pointIdx] = t - (fftTh[idx] * fftData[idx] +
-                                  fftTh[idx + 1] * fftData[idx + 1]) /
-                                     mag;
-        fftFrequencies[pointIdx] = f - (fftDht[idx] * fftData[idx + 1] -
-                                        fftDht[idx + 1] * fftData[idx]) /
-                                           mag;
-        fftAmps[pointIdx] = std::log(mag * f) / 23;
-        (++pointIdx) %= points;
+        fftTimes[i] = t - (fftTh[idx] * fftData[idx] +
+                           fftTh[idx + 1] * fftData[idx + 1]) /
+                              mag;
+        fftFrequencies[i] = f - (fftDht[idx] * fftData[idx + 1] -
+                                 fftDht[idx + 1] * fftData[idx]) /
+                                    mag;
+        fftAmps[i] = std::log(mag / fftSize) + .5;
     }
     this->lastTimeProcessed = t;
 
@@ -219,28 +207,17 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 }
 
 //==============================================================================
-bool TestAudioProcessor::hasEditor() const {
-    return true;  // (change this to false if you choose to not supply an
-                  // editor)
-}
+bool TestAudioProcessor::hasEditor() const { return true; }
 
 juce::AudioProcessorEditor* TestAudioProcessor::createEditor() {
     return new TestAudioProcessorEditor(*this);
 }
 
 //==============================================================================
-void TestAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
-}
+void TestAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {}
 
 void TestAudioProcessor::setStateInformation(const void* data,
-                                             int sizeInBytes) {
-    // You should use this method to restore your parameters from this memory
-    // block, whose contents will have been created by the getStateInformation()
-    // call.
-}
+                                             int sizeInBytes) {}
 
 //==============================================================================
 // This creates new instances of the plugin..

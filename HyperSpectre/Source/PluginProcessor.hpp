@@ -18,9 +18,8 @@ typedef unsigned long size_t;
 class TestAudioProcessor : public juce::AudioProcessor {
    public:
     enum {
-        fftOrder = 11,            // [1]
+        fftOrder = 12,            // [1]
         fftSize = 1 << fftOrder,  // [2]
-        scopeSize = 512           // [3]
     };
     //==============================================================================
     TestAudioProcessor();
@@ -75,8 +74,6 @@ class TestAudioProcessor : public juce::AudioProcessor {
     inline bool trylockFFT() { return this->fftLock.try_lock(); }
     inline void unlockFFT() { this->fftLock.unlock(); }
 
-    static constexpr size_t points = 3000;
-
    private:
     juce::dsp::WindowingFunction<float> window;
     float dhtWindow[fftSize];
@@ -94,11 +91,9 @@ class TestAudioProcessor : public juce::AudioProcessor {
     // windowing is dh(t)/dt
     float fftDht[fftSize];
 
-    float fftTimes[points];
-    float fftFrequencies[points];
-    float fftAmps[points];
-
-    size_t pointIdx = 0;
+    float fftTimes[fftSize / 2];
+    float fftFrequencies[fftSize / 2];
+    float fftAmps[fftSize / 2];
 
     float lastTimeProcessed = 0;
 

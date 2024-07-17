@@ -11,9 +11,9 @@
 
 //==============================================================================
 TestAudioProcessorEditor::TestAudioProcessorEditor(TestAudioProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p) {
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
+    : AudioProcessorEditor(&p),
+      audioProcessor(p),
+      render(juce::Image::PixelFormat::ARGB, 800, 600, true) {
     setSize(800, 600);
 }
 
@@ -25,18 +25,15 @@ const float b1 = std::log10(1 / 20000.) / (1 - 20000),
             a1 = 20000. / std::pow(10, b1 * 20000.);
 float linToLogF(float val) { return 20000 + std::log10(val / a1) / b1; }
 
-void TestAudioProcessorEditor::paint(juce::Graphics& g) {
-    constexpr auto scopeSize = TestAudioProcessor::scopeSize;
+float lastTime = 0;
+void TestAudioProcessorEditor::paint(juce::Graphics& g2) {
     constexpr auto fftSize = TestAudioProcessor::fftSize;
-    constexpr auto points = TestAudioProcessor::points;
-    // (Our component is opaque, so we must completely fill the background with
-    // a solid colour)
+    constexpr auto points = fftSize / 2;
 
-    g.setFont(juce::FontOptions(15.0f));
-    // g.drawFittedText("Hello World!", getLocalBounds(),
-    //                 juce::Justification::centred, 1);
+    g2.setOpacity(1);
 
     if (!this->audioProcessor.trylockFFT()) {
+        g2.drawImageAt(render, 0, 0);
         this->repaint(getLocalBounds());
         return;
     }
@@ -46,15 +43,24 @@ void TestAudioProcessorEditor::paint(juce::Graphics& g) {
     std::memcpy(fbuffer, fdata, points * sizeof(float));
     std::memcpy(tbuffer, tdata, points * sizeof(float));
     std::memcpy(abuffer, adata, points * sizeof(float));
+
     this->audioProcessor.unlockFFT();
 
     float lastTimeProcessed = this->audioProcessor.getLastTimeProcessed();
 
-    g.setOpacity(1);
-    g.fillAll(
-        getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
-    g.setColour(juce::Colours::yellow);
+    juce::Graphics g(render);
+
     int w = g.getClipBounds().getWidth(), h = g.getClipBounds().getHeight();
+
+    g.setOpacity(1);
+
+    g.drawImageAt(render, (lastTime - lastTimeProcessed) * w / 2, 0);
+    g.fillRect(w - (int)((lastTimeProcessed - lastTime) * w / 2), 0,
+               (int)((lastTimeProcessed - lastTime) * w / 2), h);
+    lastTime = lastTimeProcessed;
+
+    float line = 2;
+    g.setColour(juce::Colours::yellow);
     for (size_t i = 0; i < points; i++) {
         if (fbuffer[i] == 0) continue;
         float x = tbuffer[i] - lastTimeProcessed;
@@ -64,13 +70,12 @@ void TestAudioProcessorEditor::paint(juce::Graphics& g) {
         y *= h;
         g.setOpacity(abuffer[i] > 1 ? 1 : abuffer[i]);
         g.getInternalContext().drawLineWithThickness(
-            juce::Line<float>(x, y, x + 1, y), 2);
+            juce::Line<float>(x, y, ((x + line) < w - 2) ? x + line : w - 2, y),
+            2);
     }
+    g2.drawImageAt(render, 0, 0);
 
     this->repaint(getLocalBounds());
 }
 
-void TestAudioProcessorEditor::resized() {
-    // This is generally where you'll want to lay out the positions of any
-    // subcomponents in your editor..
-}
+void TestAudioProcessorEditor::resized() {}

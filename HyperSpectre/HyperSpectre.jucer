@@ -34,8 +34,8 @@
   <EXPORTFORMATS>
     <LINUX_MAKE targetFolder="Builds/LinuxMakefile" extraCompilerFlags="-std=c++17">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="HyperSpectre" extraCompilerFlags="-fsanitize=address -g"
-                       extraLinkerFlags="-fsanitize=address -static-libasan"/>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="HyperSpectre" extraCompilerFlags="-fsanitize=address -g -fno-omit-frame-pointer"
+                       extraLinkerFlags="-fsanitize=address"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="HyperSpectre"/>
       </CONFIGURATIONS>
       <MODULEPATHS>

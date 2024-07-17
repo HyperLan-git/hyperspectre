@@ -28,9 +28,11 @@ class TestAudioProcessorEditor : public juce::AudioProcessorEditor {
     // access the processor object that created it.
     TestAudioProcessor& audioProcessor;
 
-    float fbuffer[TestAudioProcessor::points];
-    float tbuffer[TestAudioProcessor::points];
-    float abuffer[TestAudioProcessor::points];
+    float fbuffer[TestAudioProcessor::fftSize / 2];
+    float tbuffer[TestAudioProcessor::fftSize / 2];
+    float abuffer[TestAudioProcessor::fftSize / 2];
+
+    juce::Image render;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TestAudioProcessorEditor)
 };
