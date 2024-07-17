@@ -18,7 +18,7 @@ typedef unsigned long size_t;
 class TestAudioProcessor : public juce::AudioProcessor {
    public:
     enum {
-        fftOrder = 12,            // [1]
+        fftOrder = 14,            // [1]
         fftSize = 1 << fftOrder,  // [2]
     };
     //==============================================================================
@@ -83,7 +83,11 @@ class TestAudioProcessor : public juce::AudioProcessor {
 
     std::mutex fftLock;
 
+    float fftAmps[fftSize / 2];
+
     float fftTemp[fftSize];
+
+    float fftTimes[fftSize / 2];
 
     float fftData[fftSize];
     // windowing is t*h(t)
@@ -91,11 +95,9 @@ class TestAudioProcessor : public juce::AudioProcessor {
     // windowing is dh(t)/dt
     float fftDht[fftSize];
 
-    float fftTimes[fftSize / 2];
-    float fftFrequencies[fftSize / 2];
-    float fftAmps[fftSize / 2];
 
     float lastTimeProcessed = 0;
+    float fftFrequencies[fftSize / 2];
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TestAudioProcessor)

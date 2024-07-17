@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <JuceHeader.h>
 #include "PluginProcessor.hpp"
+#include "SpectrogramComponent.hpp"
 
 //==============================================================================
 /**
@@ -24,15 +24,7 @@ class TestAudioProcessorEditor : public juce::AudioProcessorEditor {
     void resized() override;
 
    private:
-    // This reference is provided as a quick way for your editor to
-    // access the processor object that created it.
-    TestAudioProcessor& audioProcessor;
-
-    float fbuffer[TestAudioProcessor::fftSize / 2];
-    float tbuffer[TestAudioProcessor::fftSize / 2];
-    float abuffer[TestAudioProcessor::fftSize / 2];
-
-    juce::Image render;
+   SpectrogramComponent spectrogram;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TestAudioProcessorEditor)
 };

@@ -2,3 +2,4 @@ build
 make_helpers
 pre_build
 .vscode
+*.log
