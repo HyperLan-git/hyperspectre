@@ -18,7 +18,7 @@ typedef unsigned long size_t;
 class TestAudioProcessor : public juce::AudioProcessor {
    public:
     enum {
-        fftOrder = 14,            // [1]
+        fftOrder = 10,            // [1]
         fftSize = 1 << fftOrder,  // [2]
     };
     //==============================================================================
@@ -94,7 +94,6 @@ class TestAudioProcessor : public juce::AudioProcessor {
     float fftTh[fftSize];
     // windowing is dh(t)/dt
     float fftDht[fftSize];
-
 
     float lastTimeProcessed = 0;
     float fftFrequencies[fftSize / 2];

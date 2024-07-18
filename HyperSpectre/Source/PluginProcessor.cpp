@@ -1,11 +1,3 @@
-/*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin processor.
-
-  ==============================================================================
-*/
-
 #include "PluginEditor.hpp"
 #include "PluginProcessor.hpp"
 
@@ -34,7 +26,8 @@ TestAudioProcessor::TestAudioProcessor()
             i * (0.5 - 0.5 * std::cos(2 * pi * i / (fftSize - 1))) / fftSize;
         // derive -.5 * cos(2*pi*x / (size-1))
         // => pi * sin(2*pi*x / (size-1)) / (size-1)
-        dhtWindow[i] = std::sin(2 * pi * i / (fftSize - 1));
+        dhtWindow[i] =
+            pi * std::sin(2 * pi * i / (fftSize - 1)) / (fftSize - 1);
     }
 }
 
@@ -124,6 +117,17 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     int samples = buffer.getNumSamples();
     long double sampleRate = this->getSampleRate();
 
+    /*
+    for (int ch = 0; ch < inputs; ch++) {
+        float* data = buffer.getWritePointer(ch);
+        double t = std::fmod(
+            *(this->getPlayHead()->getPosition()->getTimeInSeconds()), 3);
+        for (int i = 0; i < samples; i++) {
+            data[i] = sin(t * 3.141596 * 2 * 440 * sin(t * 3.141596));
+            t += 1. / sampleRate;
+        }
+    }*/
+
     const float* channelData = buffer.getReadPointer(0);
 
     int len = samples;
@@ -142,6 +146,7 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         window.multiplyWithWindowingTable(fftData, fftSize);
         fft.performRealOnlyForwardTransform(fftData);
     }
+    fftLock.unlock();
 
     {
         std::memcpy(fftTh, fftTemp, sz);
@@ -153,6 +158,7 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         fft.performRealOnlyForwardTransform(fftTh);
         fft.performRealOnlyForwardTransform(fftDht);
     }
+    if (!fftLock.try_lock()) return;
 
     /*
      * t' = t - real(Xth * conj(X) / abs(X)^2)
@@ -160,32 +166,43 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
      *
      * om' = om + img(Xdh * conj(X) / abs(X)^2)
      * om' = om + (-real(Xdh) * img(X) + img(Xdh) * real(X)) / abs(X)^2
+     * 2pi*f' = 2pi*f + (-real(Xdh) * img(X) + img(Xdh) * real(X)) / abs(X)^2
+     * f' = f + (-real(Xdh) * img(X) + img(Xdh) * real(X)) / abs(X)^2 / (2pi)
      */
     float t = *(this->getPlayHead()->getPosition()->getTimeInSeconds());
-    for (int i = 0; i < fftSize / 2 - 1; i++) {
+    constexpr float lg = std::log((float)fftSize);
+    std::memset(fftFrequencies, 0, fftSize * sizeof(float) / 2);
+    for (int i = 1; i < fftSize / 2 - 1; i++) {
         int idx = i * 2;
         float mag =
             fftData[idx] * fftData[idx] + fftData[idx + 1] * fftData[idx + 1];
         float f = i * sampleRate / fftSize * 2;
 
-        fftFrequencies[i] = 0;
-        if (std::log(mag / fftSize) < -5) continue;
+        fftAmps[i] = (std::log(mag) - 2 * lg + 15) / 10;
+        if (fftAmps[i] < 0) continue;
 
         if (f >= 20000) continue;
 
-        fftTimes[i] = t - (fftTh[idx] * fftData[idx] +
-                           fftTh[idx + 1] * fftData[idx + 1]) /
-                              mag;
+        fftTimes[i] =
+            t - .2 +
+            (fftTh[idx] * fftData[idx] + fftTh[idx + 1] * fftData[idx + 1]) /
+                mag;
+        // XXX figure out why this formula is like that (probably something to
+        // convert rads/s to hz)
         fftFrequencies[i] = f + (fftDht[idx] * fftData[idx + 1] -
                                  fftDht[idx + 1] * fftData[idx]) /
-                                    mag;
-        fftAmps[i] = (std::log(mag / fftSize) + 5);
+                                    mag * 2048 * 16;
+        // if (fftAmps[i] > 1) std::cout << fftFrequencies[i] << '\n';
     }
     this->lastTimeProcessed = t;
 
     fftLock.unlock();
-    if (this->getActiveEditor() != nullptr)
-        this->getActiveEditor()->repaint(this->getActiveEditor()->getBounds());
+
+    auto editor = this->getActiveEditor();
+    if (editor != nullptr) {
+        juce::MessageManager::callAsync(
+            [editor]() { editor->repaint(editor->getBounds()); });
+    }
 }
 
 //==============================================================================
@@ -202,7 +219,6 @@ void TestAudioProcessor::setStateInformation(const void* data,
                                              int sizeInBytes) {}
 
 //==============================================================================
-// This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() {
     return new TestAudioProcessor();
 }

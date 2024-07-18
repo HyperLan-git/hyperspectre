@@ -21,7 +21,6 @@ TestAudioProcessorEditor::~TestAudioProcessorEditor() {}
 //==============================================================================
 
 void TestAudioProcessorEditor::paint(juce::Graphics& g) {
-    g.fillAll(juce::Colour(0, 0, 0));
     this->spectrogram.paint(g);
 }
 
