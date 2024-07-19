@@ -4,6 +4,10 @@
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
   <MAINGROUP id="Xa0RVj" name="HyperSpectre">
     <GROUP id="{42D3C926-8137-65E4-0546-D9BD174AEC2A}" name="Source">
+      <FILE id="ldbWsR" name="KnobComponent.cpp" compile="1" resource="0"
+            file="Source/KnobComponent.cpp"/>
+      <FILE id="vYeDV1" name="KnobComponent.hpp" compile="0" resource="0"
+            file="Source/KnobComponent.hpp"/>
       <FILE id="kJfscZ" name="SpectrogramComponent.hpp" compile="0" resource="0"
             file="Source/SpectrogramComponent.hpp"/>
       <FILE id="BZNM4H" name="SpectrogramComponent.cpp" compile="1" resource="0"

@@ -697,6 +697,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Source\KnobComponent.cpp">
+      <Filter>HyperSpectre\Source</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\SpectrogramComponent.cpp">
       <Filter>HyperSpectre\Source</Filter>
     </ClCompile>
@@ -3561,6 +3564,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\KnobComponent.hpp">
+      <Filter>HyperSpectre\Source</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\SpectrogramComponent.hpp">
       <Filter>HyperSpectre\Source</Filter>
     </ClInclude>

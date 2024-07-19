@@ -1,11 +1,3 @@
-/*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin processor.
-
-  ==============================================================================
-*/
-
 #pragma once
 
 #include <JuceHeader.h>
@@ -23,7 +15,7 @@ class TestAudioProcessor : public juce::AudioProcessor {
     };
     //==============================================================================
     TestAudioProcessor();
-    ~TestAudioProcessor() noexcept override;
+    ~TestAudioProcessor() = default;
 
     //==============================================================================
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
@@ -74,6 +66,11 @@ class TestAudioProcessor : public juce::AudioProcessor {
     inline bool trylockFFT() { return this->fftLock.try_lock(); }
     inline void unlockFFT() { this->fftLock.unlock(); }
 
+    inline float getTimeScale() const { return this->timeScale->get(); }
+    inline juce::AudioParameterFloat* getTimeScaleParam() {
+        return this->timeScale;
+    }
+
    private:
     juce::dsp::WindowingFunction<float> window;
     float dhtWindow[fftSize];
@@ -83,11 +80,11 @@ class TestAudioProcessor : public juce::AudioProcessor {
 
     std::mutex fftLock;
 
+    float fftFrequencies[fftSize / 2];
     float fftAmps[fftSize / 2];
+    float fftTimes[fftSize / 2];
 
     float fftTemp[fftSize];
-
-    float fftTimes[fftSize / 2];
 
     float fftData[fftSize];
     // windowing is t*h(t)
@@ -96,7 +93,8 @@ class TestAudioProcessor : public juce::AudioProcessor {
     float fftDht[fftSize];
 
     float lastTimeProcessed = 0;
-    float fftFrequencies[fftSize / 2];
+
+    juce::AudioParameterFloat* timeScale;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TestAudioProcessor)

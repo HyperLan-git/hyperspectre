@@ -34,24 +34,25 @@ void SpectrogramComponent::update() {
     int w = g.getClipBounds().getWidth(), h = g.getClipBounds().getHeight();
 
     g.setOpacity(1);
+    float scale = this->audioProcessor.getTimeScale();
 
     if ((lastTime - lastTimeProcessed) < 0) {
-        g.drawImageAt(render, (lastTime - lastTimeProcessed) * w / 2, 0);
-        g.fillRect(w - (int)((lastTimeProcessed - lastTime) * w / 2), 0,
-                   (int)((lastTimeProcessed - lastTime) * w / 2), h);
+        g.drawImageAt(render, (lastTime - lastTimeProcessed) * w / scale, 0);
+        g.fillRect(w - (int)((lastTimeProcessed - lastTime) * w / scale), 0,
+                   (int)((lastTimeProcessed - lastTime) * w / scale), h);
     }
     lastTime = lastTimeProcessed;
 
     g.setColour(juce::Colours::yellow);
-    for (size_t i = 0; i < points; i++) {
-        if (fbuffer[i] == 0) continue;
+    for (size_t i = 1; i < points; i++) {
+        if (fbuffer[i] <= 0) continue;
         float x = tbuffer[i] - lastTime;
-        x = (x + 2) * w / 2;
-        float y = 4 - (linToLogF(fbuffer[i]) * 2 / 20000);
+        x = (x + scale) * w / scale;
+        float y = 2.5 - (linToLogF(fbuffer[i]) * 1.25 / 20000);
         y *= h;
         g.setOpacity(abuffer[i] > 1 ? 1 : abuffer[i]);
         g.getInternalContext().drawLineWithThickness(
-            juce::Line<float>(x, y, x - 1, y), 2);
+            juce::Line<float>(x, y, x - 10 / scale, y), 2);
     }
 }
 

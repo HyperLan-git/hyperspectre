@@ -15,10 +15,11 @@ TestAudioProcessor::TestAudioProcessor()
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
               ),
-      window(fftSize, juce::dsp::WindowingFunction<float>::hann),
-      fft(fftOrder - 1)
 #endif
-{
+      window(fftSize, juce::dsp::WindowingFunction<float>::hann),
+      fft(fftOrder - 1),
+      timeScale(new juce::AudioParameterFloat({"timeScale", 1}, "Time scale",
+                                              .2, 5, 2)) {
     constexpr float pi = juce::MathConstants<float>().pi;
     for (int i = 0; i < fftSize; i++) {
         // just x * h(x)
@@ -29,9 +30,9 @@ TestAudioProcessor::TestAudioProcessor()
         dhtWindow[i] =
             pi * std::sin(2 * pi * i / (fftSize - 1)) / (fftSize - 1);
     }
-}
 
-TestAudioProcessor::~TestAudioProcessor() {}
+    addParameter(timeScale);
+}
 
 //==============================================================================
 const juce::String TestAudioProcessor::getName() const {
@@ -158,6 +159,7 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         fft.performRealOnlyForwardTransform(fftTh);
         fft.performRealOnlyForwardTransform(fftDht);
     }
+
     if (!fftLock.try_lock()) return;
 
     /*
@@ -178,13 +180,13 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             fftData[idx] * fftData[idx] + fftData[idx + 1] * fftData[idx + 1];
         float f = i * sampleRate / fftSize * 2;
 
-        fftAmps[i] = (std::log(mag) - 2 * lg + 15) / 10;
+        fftAmps[i] = (std::log(mag) - 2 * lg + 15) / 40;
         if (fftAmps[i] < 0) continue;
 
-        if (f >= 20000) continue;
+        if (f >= 20000 || f <= 10) continue;
 
         fftTimes[i] =
-            t - .2 +
+            t - .3 +
             (fftTh[idx] * fftData[idx] + fftTh[idx + 1] * fftData[idx + 1]) /
                 mag;
         // XXX figure out why this formula is like that (probably something to
@@ -205,7 +207,6 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     }
 }
 
-//==============================================================================
 bool TestAudioProcessor::hasEditor() const { return true; }
 
 juce::AudioProcessorEditor* TestAudioProcessor::createEditor() {

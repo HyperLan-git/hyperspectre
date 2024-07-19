@@ -139,6 +139,7 @@
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Source\KnobComponent.cpp"/>
     <ClCompile Include="..\..\Source\SpectrogramComponent.cpp"/>
     <ClCompile Include="..\..\Source\PluginProcessor.cpp"/>
     <ClCompile Include="..\..\Source\PluginEditor.cpp"/>
@@ -2824,6 +2825,7 @@
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_extra.cpp"/>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\KnobComponent.hpp"/>
     <ClInclude Include="..\..\Source\SpectrogramComponent.hpp"/>
     <ClInclude Include="..\..\Source\PluginProcessor.hpp"/>
     <ClInclude Include="..\..\Source\PluginEditor.hpp"/>
