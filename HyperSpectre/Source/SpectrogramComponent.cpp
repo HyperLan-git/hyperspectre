@@ -11,15 +11,20 @@ const float b1 = std::log10(1 / 20000.) / (1 - 20000),
             a1 = 20000. / std::pow(10, b1 * 20000.);
 float linToLogF(float val) { return 20000 + std::log10(val / a1) / b1; }
 
-float lastTime = 0;
+float lastTime = -1;
 void SpectrogramComponent::update() {
-    constexpr auto fftSize = TestAudioProcessor::fftSize;
-    constexpr auto points = fftSize / 2;
+    juce::ScopedNoDenormals noDenormals;
 
+    int fftSize = this->audioProcessor.getFFTSize();
+    int points = fftSize / 2;
+
+    float lastTimeProcessed = this->audioProcessor.getLastTimeProcessed();
+
+    if (lastTimeProcessed == lastTime) return;
     while (!this->audioProcessor.trylockFFT()) {
         juce::Thread::sleep(5);
+        lastTimeProcessed = this->audioProcessor.getLastTimeProcessed();
     }
-    float lastTimeProcessed = this->audioProcessor.getLastTimeProcessed();
     const auto fdata = this->audioProcessor.getFreqData();
     const auto tdata = this->audioProcessor.getTimeData();
     const auto adata = this->audioProcessor.getAmpData();
@@ -37,14 +42,14 @@ void SpectrogramComponent::update() {
     float scale = this->audioProcessor.getTimeScale();
 
     if ((lastTime - lastTimeProcessed) < 0) {
-        g.drawImageAt(render, (lastTime - lastTimeProcessed) * w / scale, 0);
-        g.fillRect(w - (int)((lastTimeProcessed - lastTime) * w / scale), 0,
-                   (int)((lastTimeProcessed - lastTime) * w / scale), h);
+        int block = (int)((lastTimeProcessed - lastTime) * w / scale);
+        g.drawImageAt(render, -block, 0);
+        g.fillRect(w - block, 0, block, h);
     }
     lastTime = lastTimeProcessed;
 
     g.setColour(juce::Colours::yellow);
-    for (size_t i = 1; i < points; i++) {
+    for (int i = 1; i < points; i++) {
         if (fbuffer[i] <= 0) continue;
         float x = tbuffer[i] - lastTime;
         x = (x + scale) * w / scale;

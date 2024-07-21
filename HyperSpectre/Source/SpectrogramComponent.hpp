@@ -12,9 +12,9 @@ class SpectrogramComponent : public juce::AnimatedAppComponent {
    private:
     TestAudioProcessor& audioProcessor;
 
-    float fbuffer[TestAudioProcessor::fftSize / 2];
-    float tbuffer[TestAudioProcessor::fftSize / 2];
-    float abuffer[TestAudioProcessor::fftSize / 2];
+    float fbuffer[MAX_FFT_SIZE / 2];
+    float tbuffer[MAX_FFT_SIZE / 2];
+    float abuffer[MAX_FFT_SIZE / 2];
 
     juce::Image render;
 

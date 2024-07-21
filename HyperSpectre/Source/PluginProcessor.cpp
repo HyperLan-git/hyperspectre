@@ -16,25 +16,30 @@ TestAudioProcessor::TestAudioProcessor()
 #endif
               ),
 #endif
-      window(fftSize, juce::dsp::WindowingFunction<float>::hann),
-      fft(fftOrder - 1),
       timeScale(new juce::AudioParameterFloat({"timeScale", 1}, "Time scale",
-                                              .2, 5, 2)) {
-    constexpr float pi = juce::MathConstants<float>().pi;
-    for (int i = 0; i < fftSize; i++) {
-        // just x * h(x)
-        tWindow[i] =
-            i * (0.5 - 0.5 * std::cos(2 * pi * i / (fftSize - 1))) / fftSize;
-        // derive -.5 * cos(2*pi*x / (size-1))
-        // => pi * sin(2*pi*x / (size-1)) / (size-1)
-        dhtWindow[i] =
-            pi * std::sin(2 * pi * i / (fftSize - 1)) / (fftSize - 1);
-    }
+                                              .2, 5, 2)),
+      minAmp(new juce::AudioParameterFloat({"minAmp", 1}, "Minimal amplitude",
+                                           0, 3, 1)),
+      fadeAmp(new juce::AudioParameterFloat({"fadeAmp", 1}, "Amplitude fading",
+                                            0, 30, 10)),
+      fftSizeParam(new juce::AudioParameterInt({"fftSize", 1}, "FFT size", 5,
+                                               MAX_FFT_ORDER, 10)),
+      fftListener(*this),
+      fft(std::make_shared<juce::dsp::FFT>(1)),
+      window(std::make_shared<juce::dsp::WindowingFunction<float>>(
+          2, juce::dsp::WindowingFunction<float>::rectangular)) {
 
     addParameter(timeScale);
+    addParameter(minAmp);
+    addParameter(fadeAmp);
+    addParameter(fftSizeParam);
+
+    fftSizeParam->addListener(&fftListener);
+
+    fftListener.parameterValueChanged(fftSizeParam->getParameterIndex(),
+                                      fftSizeParam->get());
 }
 
-//==============================================================================
 const juce::String TestAudioProcessor::getName() const {
     return JucePlugin_Name;
 }
@@ -76,7 +81,6 @@ const juce::String TestAudioProcessor::getProgramName(int index) { return {}; }
 void TestAudioProcessor::changeProgramName(int index,
                                            const juce::String& newName) {}
 
-//==============================================================================
 void TestAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
 }
 
@@ -106,9 +110,14 @@ bool TestAudioProcessor::isBusesLayoutSupported(
 void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                       juce::MidiBuffer& midiMessages) {
     juce::ScopedNoDenormals noDenormals;
+
     int inputs = getTotalNumInputChannels();
     int outputs = getTotalNumOutputChannels();
-    constexpr size_t sz = fftSize * sizeof(float);
+    int fftOrder = this->getFFTOrder(), fftSize = 1 << fftOrder;
+    if (inputs < 1) return;
+    if (fftOrder > MAX_FFT_ORDER || fftOrder <= 1) return;
+
+    size_t sz = fftSize * sizeof(float);
 
     if (this->getPlayHead() == nullptr ||
         !this->getPlayHead()->getPosition().hasValue() ||
@@ -117,17 +126,6 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     int samples = buffer.getNumSamples();
     long double sampleRate = this->getSampleRate();
-
-    /*
-    for (int ch = 0; ch < inputs; ch++) {
-        float* data = buffer.getWritePointer(ch);
-        double t = std::fmod(
-            *(this->getPlayHead()->getPosition()->getTimeInSeconds()), 3);
-        for (int i = 0; i < samples; i++) {
-            data[i] = sin(t * 3.141596 * 2 * 440 * sin(t * 3.141596));
-            t += 1. / sampleRate;
-        }
-    }*/
 
     const float* channelData = buffer.getReadPointer(0);
 
@@ -140,28 +138,25 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         std::memcpy(fftTemp + savedBlockSize, channelData, len * sizeof(float));
     }
 
-    if (!fftLock.try_lock()) return;
-
     {
+        auto window = this->window;
+        auto fft = this->fft;
+        if (!window || !fft) return;
+
         std::memcpy(fftData, fftTemp, sz);
-        window.multiplyWithWindowingTable(fftData, fftSize);
-        fft.performRealOnlyForwardTransform(fftData);
-    }
-    fftLock.unlock();
-
-    {
         std::memcpy(fftTh, fftTemp, sz);
         std::memcpy(fftDht, fftTemp, sz);
 
+        window->multiplyWithWindowingTable(fftData, fftSize);
         juce::FloatVectorOperations::multiply(fftTh, tWindow, (int)fftSize);
         juce::FloatVectorOperations::multiply(fftDht, dhtWindow, (int)fftSize);
 
-        fft.performRealOnlyForwardTransform(fftTh);
-        fft.performRealOnlyForwardTransform(fftDht);
+        fft->performRealOnlyForwardTransform(fftData);
+        fft->performRealOnlyForwardTransform(fftTh);
+        fft->performRealOnlyForwardTransform(fftDht);
     }
 
     if (!fftLock.try_lock()) return;
-
     /*
      * t' = t - real(Xth * conj(X) / abs(X)^2)
      * t' = t - (real(Xth) * real(X) + img(Xth) * img(X)) / abs(X)^2
@@ -172,40 +167,64 @@ void TestAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
      * f' = f + (-real(Xdh) * img(X) + img(Xdh) * real(X)) / abs(X)^2 / (2pi)
      */
     float t = *(this->getPlayHead()->getPosition()->getTimeInSeconds());
-    constexpr float lg = std::log((float)fftSize);
+    float lg = std::log((float)fftSize);
+
     std::memset(fftFrequencies, 0, fftSize * sizeof(float) / 2);
+
+    float min = std::exp(*this->minAmp), fade = (*this->fadeAmp) + 1;
+    double freqStep = sampleRate / fftSize * (fftOrder % 2 ? 2 : 1);
+    const auto M = juce::MathConstants<float>();
     for (int i = 1; i < fftSize / 2 - 1; i++) {
         int idx = i * 2;
-        float mag =
-            fftData[idx] * fftData[idx] + fftData[idx + 1] * fftData[idx + 1];
-        float f = i * sampleRate / fftSize * 2;
-
-        fftAmps[i] = (std::log(mag) - 2 * lg + 15) / 40;
-        if (fftAmps[i] < 0) continue;
-
+        float f = i * freqStep;
         if (f >= 20000 || f <= 10) continue;
 
-        fftTimes[i] =
-            t - .3 +
-            (fftTh[idx] * fftData[idx] + fftTh[idx + 1] * fftData[idx + 1]) /
-                mag;
+        float real = fftData[idx], img = fftData[idx + 1];
+        float mag = real * real + img * img;
+
+        fftAmps[i] = (std::log(mag) - 2 * lg + 25 - min) / fade;
+        if (fftAmps[i] <= 0) continue;
+
+        fftTimes[i] = t + (fftTh[idx] * real + fftTh[idx + 1] * img) / mag;
         // XXX figure out why this formula is like that (probably something to
         // convert rads/s to hz)
-        fftFrequencies[i] = f + (fftDht[idx] * fftData[idx + 1] -
-                                 fftDht[idx + 1] * fftData[idx]) /
-                                    mag * 2048 * 16;
-        // if (fftAmps[i] > 1) std::cout << fftFrequencies[i] << '\n';
+        float freq = f + (fftDht[idx] * img - fftDht[idx + 1] * real) * 10000 *
+                             M.pi / mag;
+        if (freq > 0 && freq < 20000) fftFrequencies[i] = freq;
     }
-    this->lastTimeProcessed = t;
-
+    this->lastTimeProcessed = t + .3;
     fftLock.unlock();
-
-    auto editor = this->getActiveEditor();
-    if (editor != nullptr) {
-        juce::MessageManager::callAsync(
-            [editor]() { editor->repaint(editor->getBounds()); });
-    }
 }
+
+TestAudioProcessor::FFTListener::FFTListener(TestAudioProcessor& proc)
+    : proc(proc) {}
+
+void TestAudioProcessor::FFTListener::parameterValueChanged(int parameterIndex,
+                                                            float newValue) {
+    constexpr float pi = juce::MathConstants<float>().pi;
+    if (newValue <= 1)
+        newValue = proc.getFFTOrderParam()->convertFrom0to1(newValue);
+    int fftOrder = proc.getFFTOrder(), fftSize = 1 << fftOrder;
+    if (fftSize == proc.fft->getSize()) return;
+    if (fftOrder <= 1 || fftOrder > MAX_FFT_ORDER) return;
+    for (int i = 0; i < fftSize; i++) {
+        // just x * h(x)
+        proc.tWindow[i] =
+            i * (0.5 - 0.5 * std::cos(2 * pi * i / (fftSize - 1))) / fftSize;
+        // derive -.5 * cos(2*pi*x / (size-1))
+        // => pi * sin(2*pi*x / (size-1)) / (size-1)
+        proc.dhtWindow[i] =
+            pi * std::sin(2 * pi * i / (fftSize - 1)) / (fftSize - 1);
+    }
+
+    proc.fft = std::make_shared<juce::dsp::FFT>(fftOrder - 1);
+
+    proc.window = std::make_shared<juce::dsp::WindowingFunction<float>>(
+        fftSize, juce::dsp::WindowingFunction<float>::hann);
+}
+
+void TestAudioProcessor::FFTListener::parameterGestureChanged(
+    int parameterIndex, bool gestureIsStarting) {}
 
 bool TestAudioProcessor::hasEditor() const { return true; }
 
@@ -213,13 +232,24 @@ juce::AudioProcessorEditor* TestAudioProcessor::createEditor() {
     return new TestAudioProcessorEditor(*this);
 }
 
-//==============================================================================
-void TestAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {}
+void TestAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
+    juce::MemoryOutputStream stream(destData, true);
+    stream.writeFloat(GET_PARAM_NORMALIZED(timeScale));
+    stream.writeFloat(GET_PARAM_NORMALIZED(minAmp));
+    stream.writeFloat(GET_PARAM_NORMALIZED(fadeAmp));
+    stream.writeFloat(GET_PARAM_NORMALIZED(fftSizeParam));
+}
 
 void TestAudioProcessor::setStateInformation(const void* data,
-                                             int sizeInBytes) {}
+                                             int sizeInBytes) {
+    juce::MemoryInputStream stream(data, static_cast<size_t>(sizeInBytes),
+                                   false);
+    timeScale->setValueNotifyingHost(stream.readFloat());
+    minAmp->setValueNotifyingHost(stream.readFloat());
+    fadeAmp->setValueNotifyingHost(stream.readFloat());
+    fftSizeParam->setValueNotifyingHost(stream.readFloat());
+}
 
-//==============================================================================
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() {
     return new TestAudioProcessor();
 }

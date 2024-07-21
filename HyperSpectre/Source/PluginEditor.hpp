@@ -12,7 +12,7 @@ class TestAudioProcessorEditor : public juce::AudioProcessorEditor {
 
    private:
     SpectrogramComponent spectrogram;
-    KnobComponent timeKnob;
+    KnobComponent timeKnob, minAmp, fadeAmp, fftKnob;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TestAudioProcessorEditor)
 };
