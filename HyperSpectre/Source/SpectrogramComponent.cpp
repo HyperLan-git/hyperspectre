@@ -2,13 +2,13 @@
 
 SpectrogramComponent::SpectrogramComponent(TestAudioProcessor& audioProcessor)
     : audioProcessor(audioProcessor),
-      render(juce::Image::PixelFormat::ARGB, 800, 600, true) {
+          render(juce::Image::PixelFormat::ARGB, 800, 600, true) {
     setSize(800, 600);
     setFramesPerSecond(60);
 }
 
-const float b1 = std::log10(1 / 20000.) / (1 - 20000),
-            a1 = 20000. / std::pow(10, b1 * 20000.);
+const float b1 = std::log10(1 / 20000.f) / (1 - 20000),
+            a1 = 20000.f / (float)std::pow(10, b1 * 20000.f);
 float linToLogF(float val) { return 20000 + std::log10(val / a1) / b1; }
 
 float lastTime = -1;
@@ -43,7 +43,7 @@ void SpectrogramComponent::update() {
 
     if ((lastTime - lastTimeProcessed) < 0) {
         int block = (int)((lastTimeProcessed - lastTime) * w / scale);
-        g.drawImageAt(render, -block, 0);
+        render.moveImageSection(0, 0, block, 0, w - block, h);
         g.fillRect(w - block, 0, block, h);
     }
     lastTime = lastTimeProcessed;
@@ -53,7 +53,7 @@ void SpectrogramComponent::update() {
         if (fbuffer[i] <= 0) continue;
         float x = tbuffer[i] - lastTime;
         x = (x + scale) * w / scale;
-        float y = 2.5 - (linToLogF(fbuffer[i]) * 1.25 / 20000);
+        float y = 2.5f - (linToLogF(fbuffer[i]) * 1.25f / 20000);
         y *= h;
         g.setOpacity(abuffer[i] > 1 ? 1 : abuffer[i]);
         g.getInternalContext().drawLineWithThickness(

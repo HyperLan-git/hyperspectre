@@ -3,3 +3,5 @@ make_helpers
 pre_build
 .vscode
 *.log
+.vs
+x64

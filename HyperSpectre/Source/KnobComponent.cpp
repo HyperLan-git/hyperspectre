@@ -21,24 +21,31 @@ ParamListener::~ParamListener() {
     param->removeListener(this);
 }
 
-void ParamListener::sliderValueChanged(juce::Slider* slider) {
-    SET_PARAM_NORMALIZED(param, slider->getValue());
+void ParamListener::sliderValueChanged(juce::Slider* s) {
+    SET_PARAM_NORMALIZED(param, (float)s->getValue());
 }
 
-void ParamListener::sliderDragStarted(juce::Slider* slider) {
+void ParamListener::sliderDragStarted(juce::Slider* s) {
+    (void) s;
     param->beginChangeGesture();
 }
 
-void ParamListener::sliderDragEnded(juce::Slider* slider) {
+void ParamListener::sliderDragEnded(juce::Slider* s) {
+    (void) s;
     param->endChangeGesture();
 }
 
 void ParamListener::parameterValueChanged(int parameterIndex, float newValue) {
+    (void) parameterIndex;
+    (void) newValue;
     slider->setValue(param->convertFrom0to1(param->getValue()));
 }
 
 void ParamListener::parameterGestureChanged(int parameterIndex,
-                                            bool gestureIsStarting) {}
+                                            bool gestureIsStarting) {
+    (void) parameterIndex;
+    (void) gestureIsStarting;
+}
 
 // TODO merge both constructors
 KnobComponent::KnobComponent(juce::AudioParameterFloat* param, double step)

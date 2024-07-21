@@ -4,8 +4,6 @@
 #include <JucePluginDefines.h>
 #include <cmath>
 
-typedef unsigned long size_t;
-
 constexpr int MAX_FFT_ORDER = 13;
 constexpr int MAX_FFT_SIZE = 1 << MAX_FFT_ORDER;
 
@@ -54,7 +52,7 @@ class TestAudioProcessor : public juce::AudioProcessor {
     inline const float* const getTimeData() const { return this->fftTimes; }
     inline const float* const getAmpData() const { return this->fftAmps; }
 
-    inline const float getLastTimeProcessed() {
+    inline const float getLastTimeProcessed() const {
         return this->lastTimeProcessed;
     }
 
@@ -93,25 +91,25 @@ class TestAudioProcessor : public juce::AudioProcessor {
     FFTListener fftListener;
 
     std::shared_ptr<juce::dsp::WindowingFunction<float>> window;
-    float dhtWindow[MAX_FFT_SIZE];
-    float tWindow[MAX_FFT_SIZE];
+    float dhtWindow[MAX_FFT_SIZE] = {};
+    float tWindow[MAX_FFT_SIZE] = {};
 
     // TODO optimise this shit cuz a dsp library is apparently not built for fft
     std::shared_ptr<juce::dsp::FFT> fft;
 
     std::mutex fftLock;
 
-    float fftFrequencies[MAX_FFT_SIZE / 2];
-    float fftAmps[MAX_FFT_SIZE / 2];
-    float fftTimes[MAX_FFT_SIZE / 2];
+    float fftFrequencies[MAX_FFT_SIZE / 2] = {};
+    float fftAmps[MAX_FFT_SIZE / 2] = {};
+    float fftTimes[MAX_FFT_SIZE / 2] = {};
 
-    float fftTemp[MAX_FFT_SIZE];
+    float fftTemp[MAX_FFT_SIZE] = {};
 
-    float fftData[MAX_FFT_SIZE];
+    float fftData[MAX_FFT_SIZE] = {};
     // windowing is t*h(t)
-    float fftTh[MAX_FFT_SIZE];
+    float fftTh[MAX_FFT_SIZE] = {};
     // windowing is dh(t)/dt
-    float fftDht[MAX_FFT_SIZE];
+    float fftDht[MAX_FFT_SIZE] = {};
 
     float lastTimeProcessed = 0;
 
