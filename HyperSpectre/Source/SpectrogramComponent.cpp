@@ -2,7 +2,7 @@
 
 SpectrogramComponent::SpectrogramComponent(TestAudioProcessor& audioProcessor)
     : audioProcessor(audioProcessor),
-          render(juce::Image::PixelFormat::ARGB, 800, 600, true) {
+      render(juce::Image::PixelFormat::ARGB, 850, 600, true) {
     setSize(800, 600);
     setFramesPerSecond(60);
 }
@@ -21,18 +21,12 @@ void SpectrogramComponent::update() {
     float lastTimeProcessed = this->audioProcessor.getLastTimeProcessed();
 
     if (lastTimeProcessed == lastTime) return;
-    while (!this->audioProcessor.trylockFFT()) {
-        juce::Thread::sleep(5);
-        lastTimeProcessed = this->audioProcessor.getLastTimeProcessed();
-    }
     const auto fdata = this->audioProcessor.getFreqData();
     const auto tdata = this->audioProcessor.getTimeData();
     const auto adata = this->audioProcessor.getAmpData();
     std::memcpy(fbuffer, fdata, points * sizeof(float));
     std::memcpy(tbuffer, tdata, points * sizeof(float));
     std::memcpy(abuffer, adata, points * sizeof(float));
-
-    this->audioProcessor.unlockFFT();
 
     juce::Graphics g(render);
 
@@ -47,6 +41,7 @@ void SpectrogramComponent::update() {
         g.fillRect(w - block, 0, block, h);
     }
     lastTime = lastTimeProcessed;
+    this->audioProcessor.setRendered();
 
     g.setColour(juce::Colours::yellow);
     for (int i = 1; i < points; i++) {
@@ -64,5 +59,6 @@ void SpectrogramComponent::update() {
 // TODO make the image scroll left for smoothness
 void SpectrogramComponent::paint(juce::Graphics& g) {
     g.setOpacity(1);
-    g.drawImageAt(render, 0, 0);
+    g.drawImageWithin(render, 0, 0, 800, 600,
+                      juce::RectanglePlacement::doNotResize);
 }

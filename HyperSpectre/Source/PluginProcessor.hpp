@@ -56,10 +56,6 @@ class TestAudioProcessor : public juce::AudioProcessor {
         return this->lastTimeProcessed;
     }
 
-    inline void lockFFT() { this->fftLock.lock(); }
-    inline bool trylockFFT() { return this->fftLock.try_lock(); }
-    inline void unlockFFT() { this->fftLock.unlock(); }
-
     inline float getTimeScale() const { return this->timeScale->get(); }
     inline int getFFTSize() const { return 1 << this->fftSizeParam->get(); }
     inline int getFFTOrder() const { return this->fftSizeParam->get(); }
@@ -74,6 +70,8 @@ class TestAudioProcessor : public juce::AudioProcessor {
     inline juce::AudioParameterInt* getFFTOrderParam() {
         return this->fftSizeParam;
     }
+
+    inline void setRendered() { this->rendered = true; }
 
    private:
     class FFTListener : public juce::AudioProcessorParameter::Listener {
@@ -97,8 +95,6 @@ class TestAudioProcessor : public juce::AudioProcessor {
     // TODO optimise this shit cuz a dsp library is apparently not built for fft
     std::shared_ptr<juce::dsp::FFT> fft;
 
-    std::mutex fftLock;
-
     float fftFrequencies[MAX_FFT_SIZE / 2] = {};
     float fftAmps[MAX_FFT_SIZE / 2] = {};
     float fftTimes[MAX_FFT_SIZE / 2] = {};
@@ -112,6 +108,7 @@ class TestAudioProcessor : public juce::AudioProcessor {
     float fftDht[MAX_FFT_SIZE] = {};
 
     float lastTimeProcessed = 0;
+    bool rendered = true;
 
     juce::AudioParameterFloat* timeScale;
     juce::AudioParameterFloat* minAmp;
