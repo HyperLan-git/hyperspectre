@@ -1,7 +1,8 @@
-#include "PluginEditor.hpp"
 #include "PluginProcessor.hpp"
 
 #include <algorithm>
+
+#include "PluginEditor.hpp"
 
 TestAudioProcessor::TestAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -221,7 +222,7 @@ void TestAudioProcessor::FFTListener::parameterValueChanged(int parameterIndex,
     for (int i = 0; i < fftSize; i++) {
         // just x * h(x)
         proc.tWindow[i] =
-            i * (0.5f - 0.5f * std::cos(2 * pi * i / (fftSize - 1)));
+            i * (0.5f - 0.5f * std::cos(2 * pi * i / (fftSize - 1))) / fftSize;
         // derive -.5 * cos(2*pi*x / (size-1))
         // => pi * sin(2*pi*x / (size-1)) / (size-1)
         proc.dhtWindow[i] =
